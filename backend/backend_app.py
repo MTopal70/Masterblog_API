@@ -1,19 +1,96 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # This will enable CORS for all routes
+CORS(app)
 
+# 🗂️ In-Memory-Datenbank
 POSTS = [
     {"id": 1, "title": "First post", "content": "This is the first post."},
     {"id": 2, "title": "Second post", "content": "This is the second post."},
 ]
 
-
+# 📋 LIST + SORT
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
-    return jsonify(POSTS)
+    sort_field = request.args.get('sort')
+    direction = request.args.get('direction', 'asc')
 
+    valid_fields = ['title', 'content']
+    valid_directions = ['asc', 'desc']
 
+    if sort_field and sort_field not in valid_fields:
+        return jsonify({"error": f"Invalid sort field: '{sort_field}'. Use 'title' or 'content'."}), 400
+    if direction and direction not in valid_directions:
+        return jsonify({"error": f"Invalid direction: '{direction}'. Use 'asc' or 'desc'."}), 400
+
+    sorted_posts = POSTS.copy()
+    if sort_field:
+        reverse = direction == 'desc'
+        sorted_posts.sort(key=lambda post: post[sort_field].lower(), reverse=reverse)
+
+    return jsonify(sorted_posts), 200
+
+# ➕ ADD
+@app.route('/api/posts', methods=['POST'])
+def add_post():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    missing_fields = []
+    if "title" not in data or not data["title"]:
+        missing_fields.append("title")
+    if "content" not in data or not data["content"]:
+        missing_fields.append("content")
+    if missing_fields:
+        return jsonify({"error": f"Missing field(s): {', '.join(missing_fields)}"}), 400
+
+    new_id = max(post["id"] for post in POSTS) + 1 if POSTS else 1
+    new_post = {
+        "id": new_id,
+        "title": data["title"],
+        "content": data["content"]
+    }
+    POSTS.append(new_post)
+    return jsonify(new_post), 201
+
+# 🗑️ DELETE
+@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
+def delete_post(post_id):
+    post = next((p for p in POSTS if p["id"] == post_id), None)
+    if not post:
+        return jsonify({"error": f"Post with id {post_id} not found."}), 404
+
+    POSTS.remove(post)
+    return jsonify({"message": f"Post with id {post_id} has been deleted successfully."}), 200
+
+# ✏️ UPDATE
+@app.route('/api/posts/<int:post_id>', methods=['PUT'])
+def update_post(post_id):
+    data = request.get_json()
+    post = next((p for p in POSTS if p["id"] == post_id), None)
+    if not post:
+        return jsonify({"error": f"Post with id {post_id} not found."}), 404
+
+    post["title"] = data.get("title", post["title"])
+    post["content"] = data.get("content", post["content"])
+    return jsonify(post), 200
+
+# 🔍 SEARCH
+@app.route('/api/posts/search', methods=['GET'])
+def search_posts():
+    title_query = request.args.get('title', '').lower()
+    content_query = request.args.get('content', '').lower()
+
+    results = [
+        post for post in POSTS
+        if title_query in post["title"].lower() or content_query in post["content"].lower()
+    ]
+    return jsonify(results), 200
+
+# 🚀 Start
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
+
+
