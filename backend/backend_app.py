@@ -2,15 +2,16 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Enables Cross-Origin Resource Sharing for all routes
 
-# 🗂️ In-Memory-Datenbank
+# 🗂️ In-memory list of blog posts
 POSTS = [
     {"id": 1, "title": "First post", "content": "This is the first post."},
     {"id": 2, "title": "Second post", "content": "This is the second post."},
 ]
 
-# 📋 LIST + SORT
+# 📋 GET /api/posts
+# Returns a list of all posts. Supports optional sorting by title or content.
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
     sort_field = request.args.get('sort')
@@ -31,7 +32,8 @@ def get_posts():
 
     return jsonify(sorted_posts), 200
 
-# ➕ ADD
+# ➕ POST /api/posts
+# Adds a new post. Requires 'title' and 'content' in the request body.
 @app.route('/api/posts', methods=['POST'])
 def add_post():
     data = request.get_json()
@@ -55,7 +57,8 @@ def add_post():
     POSTS.append(new_post)
     return jsonify(new_post), 201
 
-# 🗑️ DELETE
+# 🗑️ DELETE /api/posts/<id>
+# Deletes a post by its ID. Returns 404 if the post is not found.
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
     post = next((p for p in POSTS if p["id"] == post_id), None)
@@ -65,7 +68,8 @@ def delete_post(post_id):
     POSTS.remove(post)
     return jsonify({"message": f"Post with id {post_id} has been deleted successfully."}), 200
 
-# ✏️ UPDATE
+# ✏️ PUT /api/posts/<id>
+# Updates an existing post by ID. Title and content are optional.
 @app.route('/api/posts/<int:post_id>', methods=['PUT'])
 def update_post(post_id):
     data = request.get_json()
@@ -77,7 +81,8 @@ def update_post(post_id):
     post["content"] = data.get("content", post["content"])
     return jsonify(post), 200
 
-# 🔍 SEARCH
+# 🔍 GET /api/posts/search
+# Searches posts by title or content using query parameters.
 @app.route('/api/posts/search', methods=['GET'])
 def search_posts():
     title_query = request.args.get('title', '').lower()
@@ -89,8 +94,7 @@ def search_posts():
     ]
     return jsonify(results), 200
 
-# 🚀 Start
+# 🚀 Starts the Flask development server
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
-
 
