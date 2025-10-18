@@ -14,6 +14,18 @@ POSTS = [
 # Returns a list of all posts. Supports optional sorting by title or content.
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
+    """
+    Retrieve all posts, optionally sorted by title or content.
+
+    Query Parameters:
+        sort (str): Field to sort by ('title' or 'content').
+        direction (str): Sort direction ('asc' or 'desc', default is 'asc').
+
+    Returns:
+        200 OK with sorted post list,
+        400 Bad Request if parameters are invalid.
+    """
+
     sort_field = request.args.get('sort')
     direction = request.args.get('direction', 'asc')
 
@@ -36,6 +48,14 @@ def get_posts():
 # Adds a new post. Requires 'title' and 'content' in the request body.
 @app.route('/api/posts', methods=['POST'])
 def add_post():
+    """
+    Add a new post from JSON input with title and content.
+
+    Returns:
+        201 Created with the new post,
+        400 Bad Request if JSON body or required fields are missing.
+    """
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "Missing JSON body"}), 400
@@ -61,6 +81,14 @@ def add_post():
 # Deletes a post by its ID. Returns 404 if the post is not found.
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
+    """
+    Delete a post by its ID from the in-memory POSTS list.
+
+    Returns:
+        200 OK if the post was deleted,
+        404 Not Found if the post does not exist.
+    """
+
     post = next((p for p in POSTS if p["id"] == post_id), None)
     if not post:
         return jsonify({"error": f"Post with id {post_id} not found."}), 404
